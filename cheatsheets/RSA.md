@@ -1,6 +1,3 @@
-Got you—you want **one clean table**, not a full textbook. Here’s a compact, repo-ready version with everything side-by-side.
-
----
 
 # RSA Cheat Sheet (Compact Comparison)
 
@@ -45,6 +42,3 @@ C = pow(M, e, n)
 M_dec = pow(C, d, n)
 ```
 
----
-
-That’s the tight version you were aiming for—clean, readable, and perfect for a README.
