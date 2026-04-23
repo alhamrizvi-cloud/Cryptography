@@ -1,0 +1,159 @@
+
+
+## RSA (Rivest–Shamir–Adleman)
+
+RSA is a public-key cryptosystem invented by Ron Rivest, Adi Shamir, and Leonard Adleman. It is widely used for secure communication, encryption, and digital signatures.
+
+The core idea behind RSA is simple:
+
+* A **public key** is used to encrypt data
+* A **private key** is used to decrypt data
+
+---
+
+## Mathematical Idea
+
+RSA relies on a key concept from cryptography:
+Factoring a large number into its prime components is computationally hard.
+
+## ⚙️ RSA Algorithm
+
+### 1. Key Generation
+
+Choose two large prime numbers:
+
+```text
+p, q
+```
+
+Compute:
+
+```text
+n = p × q
+```
+
+Compute Euler’s Totient:
+
+```text
+φ(n) = (p − 1)(q − 1)
+```
+
+Choose a public exponent `e` such that:
+
+```text
+1 < e < φ(n)
+gcd(e, φ(n)) = 1
+```
+
+Compute private exponent `d`:
+
+```text
+d ≡ e⁻¹ mod φ(n)
+```
+
+Final keys:
+
+```text
+Public Key  = (e, n)
+Private Key = (d, n)
+```
+
+### 2. Encryption
+
+Convert message into integer `M`:
+
+```text
+C = M^e mod n
+```
+
+### 3. Decryption
+
+```text
+M = C^d mod n
+```
+
+---
+
+## 🐍 Python Implementation (Educational)
+
+```python
+from sympy import mod_inverse
+
+# Step 1: primes (small for demo)
+p = 61
+q = 53
+
+# Step 2: modulus
+n = p * q
+
+# Step 3: totient
+phi = (p - 1) * (q - 1)
+
+# Step 4: public exponent
+e = 17
+
+# Step 5: private key
+d = mod_inverse(e, phi)
+
+print("Public Key:", (e, n))
+print("Private Key:", (d, n))
+
+# Message
+M = 65
+
+# Encryption
+C = pow(M, e, n)
+print("Ciphertext:", C)
+
+# Decryption
+decrypted = pow(C, d, n)
+print("Decrypted:", decrypted)
+```
+
+## 🔒 Secure Implementation (Recommended)
+
+Use a real crypto library like PyCryptodome:
+
+```python
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+
+# Generate key pair
+key = RSA.generate(2048)
+
+public_key = key.publickey()
+cipher = PKCS1_OAEP.new(public_key)
+
+message = b"hello world"
+ciphertext = cipher.encrypt(message)
+
+# Decrypt
+cipher = PKCS1_OAEP.new(key)
+plaintext = cipher.decrypt(ciphertext)
+
+print(plaintext)
+```
+
+## 🌐 Online Tools (Useful for CTFs)
+
+* dcode
+* CyberChef
+* 8gwifi RSA calculator
+
+---
+
+## ⚠️ Important Notes
+
+* Real RSA uses **2048-bit or larger keys**
+* Small primes (like in examples) are insecure
+* Padding (e.g., OAEP) is required for safe encryption
+* Never implement RSA from scratch in production
+
+## 🧩 CTF Insight
+
+In CTF challenges, RSA is often broken due to:
+
+* Small prime factors
+* Reused modulus `n`
+* Weak exponent (`e = 3`)
+* Missing padding
