@@ -1,0 +1,178 @@
+
+
+# 🔐 What is the Small Exponent Attack?
+
+It’s an RSA weakness that happens when:
+
+```text
+e is very small (usually 3)
+AND
+the message M is small
+```
+
+# Why it works (core idea)
+
+Normal RSA encryption is:
+
+```text
+C = M^e mod n
+```
+
+But “mod n” only matters if the number gets **bigger than n**.
+
+---
+
+## Case 1 — Normal (secure)
+
+```text
+M^e > n
+```
+
+Then:
+
+```text
+C = M^e mod n   (value gets wrapped)
+```
+
+👉 You CANNOT reverse it easily
+👉 Need full RSA (factor, find d, etc.)
+
+
+## Case 2 — Vulnerable (attack works)
+
+```text
+M^e < n
+```
+
+Then:
+
+```text
+C = M^e   (no modulo effect)
+```
+
+👉 That means encryption is basically:
+
+```text
+C = M^3
+```
+
+So:
+
+```text
+M = cube_root(C)
+```
+
+# 🔥 Simple Analogy
+
+Think of modulo like a “cut-off”:
+
+```text
+If number < n → nothing happens
+If number > n → it wraps around
+```
+
+Small exponent attack works when:
+
+```text
+No wrapping happens
+```
+
+# 🧪 Practical Example
+
+### Given
+
+```text
+n = 1000003
+e = 3
+C = 343
+```
+
+---
+
+## Step 1 — Try cube root
+
+```text
+343 = 7^3
+```
+
+---
+
+## Step 2 — Answer
+
+```text
+M = 7
+```
+
+---
+
+## 🐍 Python
+
+```python
+import sympy
+
+C = 343
+M = int(sympy.cbrt(C))
+
+print(M)
+```
+
+---
+
+# ⚠️ When to Use This Attack
+
+Use it when you see:
+
+```text
+e = 3
+small ciphertext
+no padding mentioned
+```
+
+---
+
+# ❌ When NOT to Use
+
+Don’t use it if:
+
+```text
+M^e > n
+large ciphertext
+padding is used (real-world RSA)
+```
+
+---
+
+# 🧠 CTF Mindset
+
+When you see RSA:
+
+```text
+1. Check e
+2. If e = 3 → try cube root FIRST
+3. Only then go to factorization
+```
+
+---
+
+# 🚀 Why this matters
+
+This attack is common in challenges like picoCTF because:
+
+```text
+developers forget padding
+messages are small
+```
+
+---
+
+# 🧾 Final takeaway
+
+```text
+If M^e < n → RSA becomes just exponentiation
+→ reverse using root
+```
+
+---
+
+If you want next step:
+👉 I can give you a **real CTF-level small e problem (harder)** where it’s not obvious cube root.
