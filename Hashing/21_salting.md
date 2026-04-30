@@ -1,0 +1,181 @@
+# Salting
+
+## What is a Salt?
+A **salt** is a random value added to a password **before hashing** to ensure that identical passwords produce different hash outputs. Salts are not secret — they are stored alongside the hash.
+
+```
+hash = H(password + salt)
+```
+
+---
+
+## Why Salting is Necessary
+
+### Without Salt (DANGEROUS ❌)
+```
+hash("password123") → 5f4dcc3b5aa765d61d8327deb882cf99
+hash("password123") → 5f4dcc3b5aa765d61d8327deb882cf99  ← SAME!
+```
+- Rainbow table attacks work instantly
+- If one user's password is cracked, all users with the same password are compromised
+
+### With Salt (SAFE ✅)
+```
+hash("password123" + "aX9kL2") → a3f1c7d...
+hash("password123" + "mP4nQ8") → 9b2e5f1...  ← DIFFERENT!
+```
+- Rainbow tables are defeated
+- Each password must be cracked individually
+
+---
+
+## How Salting Works
+
+```
+┌─────────────┐     ┌──────────────────────┐     ┌──────────────────┐
+│  Password   │──┐  │                      │     │  Stored in DB:   │
+│ "hunter2"   │  ├─▶│  Hash Function       │────▶│  salt: aX9kL2    │
+│             │  │  │  H(password + salt)  │     │  hash: 3f8a...   │
+│  Salt       │──┘  │                      │     │                  │
+│ "aX9kL2"    │     └──────────────────────┘     └──────────────────┘
+└─────────────┘
+```
+
+### Verification Flow
+```
+User enters password → retrieve salt from DB → hash(input + salt) → compare with stored hash
+```
+
+---
+
+## Salt Properties
+
+| Property | Requirement |
+|----------|-------------|
+| Length | Minimum 16 bytes (128 bits) |
+| Randomness | Cryptographically secure random |
+| Uniqueness | One per password (never reuse) |
+| Storage | Store in plaintext alongside hash |
+| Secrecy | NOT required (but doesn't hurt) |
+
+---
+
+## Implementation Examples
+
+### Python (manual)
+```python
+import hashlib, os, secrets
+
+# Generate salt
+salt = secrets.token_bytes(16)
+
+# Hash with salt
+password = b"mypassword"
+combined = salt + password
+hashed = hashlib.sha256(combined).hexdigest()
+
+# Store: salt.hex() + ":" + hashed
+stored = salt.hex() + ":" + hashed
+
+# Verify
+stored_salt_hex, stored_hash = stored.split(":")
+salt = bytes.fromhex(stored_salt_hex)
+test_hash = hashlib.sha256(salt + b"mypassword").hexdigest()
+assert test_hash == stored_hash
+```
+
+### Python (recommended — use bcrypt/argon2 which handle salts automatically)
+```python
+import bcrypt
+
+# bcrypt handles salt automatically
+hashed = bcrypt.hashpw(b"mypassword", bcrypt.gensalt())
+# Salt is embedded in the hash string — no manual handling needed
+```
+
+### Node.js
+```javascript
+const crypto = require('crypto');
+
+// Manual salt
+const salt = crypto.randomBytes(16).toString('hex');
+const hash = crypto.createHash('sha256')
+    .update(salt + 'mypassword')
+    .digest('hex');
+
+// Store: { salt, hash }
+// Verify: re-hash with stored salt and compare
+```
+
+### SQL Schema (storing salted hashes)
+```sql
+CREATE TABLE users (
+    id          SERIAL PRIMARY KEY,
+    email       VARCHAR(255) UNIQUE NOT NULL,
+    salt        CHAR(32) NOT NULL,      -- 16 bytes hex encoded
+    password_hash CHAR(64) NOT NULL,    -- SHA-256 hex output
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+## Common Mistakes
+
+### ❌ Static/Hardcoded Salt
+```python
+SALT = "static_salt_123"  # BAD! Same salt for all users
+hash = sha256(SALT + password)
+```
+
+### ❌ Reusing Salts
+```python
+salt = get_salt_from_db()  # BAD! Same salt used for all passwords
+```
+
+### ❌ Too Short Salt
+```python
+salt = os.urandom(4)  # BAD! 4 bytes = 32-bit space = easily brute-forced
+```
+
+### ❌ Predictable Salt
+```python
+salt = str(user_id)  # BAD! Predictable, attacker can precompute
+salt = username      # BAD! Same issue
+```
+
+### ✅ Correct Approach
+```python
+salt = secrets.token_bytes(16)  # 16 random bytes per password
+```
+
+---
+
+## Salt vs Pepper vs Key
+
+| Concept | Stored | Secret | Purpose |
+|---------|--------|--------|---------|
+| Salt | In DB (plaintext) | No | Uniqueness per password |
+| Pepper | NOT in DB | Yes (in code/env) | Extra secret layer |
+| Key | Secure store | Yes | Encryption/decryption |
+
+---
+
+## Attacks Defeated by Salting
+
+| Attack | Defeated? |
+|--------|-----------|
+| Rainbow Table | ✅ Yes |
+| Precomputed Hash Lookup | ✅ Yes |
+| Batch Cracking (same hash = same pass) | ✅ Yes |
+| Brute Force (single password) | ❌ No |
+| Dictionary Attack (single password) | ❌ No |
+
+---
+
+## Best Practices
+- Use **cryptographically secure** random number generators (`secrets`, `os.urandom`, `crypto.randomBytes`)
+- Salt must be **at least 16 bytes**
+- Use a **unique salt per password**, even if user changes their password
+- Use libraries (**bcrypt, argon2, scrypt**) that handle salting automatically
+- Never truncate or encode salts in ways that reduce entropy
